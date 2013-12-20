@@ -35,7 +35,7 @@ loop_positions([H|T], Position, Result) ->
 
 %Input - formats: <<"U">>, <<1,80>>
 start(Input) ->
-  Result = case binary_to_list(Input) of
+  Result = case [X || X <- binary_to_list(Input), X =/=0] of
     [H|T] ->
       loop_positions([H|T], 0, []);
     _ ->
