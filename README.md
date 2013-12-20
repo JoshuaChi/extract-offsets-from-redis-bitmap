@@ -12,12 +12,15 @@ erl -make
 In redis client:
 
 `setbit mykey 1 1`
+
 `setbit mykey 4 1`
+
 `setbit mykey 5 1`
 
 
 
 `extract_offsets:loop_positions(binary_to_list($RedisValue), 0, []).`
+
 [1, 4, 5]
 
 ##Note
