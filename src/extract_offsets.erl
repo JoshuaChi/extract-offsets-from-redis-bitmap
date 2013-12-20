@@ -15,26 +15,22 @@ loop([], _Position, Result) ->
 loop([H|T], Position, Result) ->
   NewResult = case H of
     [{V,_}] -> 
-      io:format("Result: ~p~n", [Result]),
       lists:append(Result, [list_offsets(V, Position)]);
     _ -> 
       Result
   end,
-  io:format("NewResult:~p~n", [NewResult]),
   loop(T, Position, NewResult).
       
 
 loop_positions([], _Position, Result)->
   Result;
 loop_positions([H|T], Position, Result) ->
-%  io:format("~p~n", [H]),
   NewResult = case re:run(string:right(hd(io_lib:format("~.2B", [H])), 8, $0), "1", [global]) of
     {match, V} ->
       loop(V, Position, Result);
     nomatch ->
       Result
   end,
-%  io:format("NewResult:~p~n", [NewResult]),
   loop_positions(T, Position+1, NewResult).
 
 %Input - formats: <<"U">>, <<1,80>>
