@@ -124,6 +124,11 @@ extract_offsets:'-parition_binary/5-lc$^1/1-1-'/1  625625  92.38  61147  [      
 
 ```
 
+
+If a1 and a2 contain offsets from 1 to 20000 and plus 190000, 5000000 and 5000003, the profiling result:
+```
+Cpu Time: 580000 microseconds; Elapsed Time: 586000 microseconds
+```
 ##Note
 
 I use [eredis](https://github.com/wooga/eredis) to do the testing. 
