@@ -6,7 +6,7 @@
 % @author Joshua Chi<joshokn@gmail.com>
 %------------------------------------------------
 -module(extract_offsets).
--export([loop_positions/3, start/1, parition_binary/4]).
+-export([loop_positions/3, start/1, parition_binary/5]).
 -behavior(gen_server).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 -export([start_link/0, stop/0]).
@@ -42,49 +42,41 @@ loop_positions([H|T], Position, Result) ->
   end,
   loop_positions(T, Position+1, NewResult).
 
-parition_binary(Result, <<>>, _Offset, _Limit) ->
+parition_binary(Result, <<>>, _Offset, _Limit, _Pointer) ->
   Result;
-parition_binary(Result, Binary, _Offset, _Limit) when byte_size(Binary) < ?THRESHOLD ->
-  Result = case [X || X <- binary_to_list(Binary), X =/=0] of
+parition_binary(Result, Binary, Offset, _Limit, Pointer) when byte_size(Binary) < ?THRESHOLD ->
+  Limit = byte_size(Binary),
+  NewResult = case [X || X <- binary_to_list(Binary), X =/=0] of
     [H|T] ->
-      loop_positions([H|T], 0, []);
+      loop_positions([H|T], Pointer, Result);
     _ ->
-      []
+      Result
   end,
-  Result;
-parition_binary(Result, Binary, Offset, Limit) when Offset =< byte_size(Binary) ->
-  io:format("Size:~p; Offset: ~p Limit: ~p~n", [byte_size(Binary), Offset, Limit]),
-  NewLimit = case Offset+Limit > byte_size(Binary) of
+  NewResult;
+parition_binary(Result, Binary, Offset, Limit, Pointer) when Offset =< byte_size(Binary) ->
+  BinarySize = byte_size(Binary),
+  NewLimit = case Offset + Limit > BinarySize of
     true ->
-       byte_size(Binary) - Offset;
+       BinarySize - Offset;
     false ->
       Limit
   end,
   PartBinary = binary:part(Binary,{Offset, NewLimit}),
   NewResult = case [X || X <- binary_to_list(PartBinary), X =/=0] of
     [H|T] ->
-      loop_positions([H|T], 0, []);
+      loop_positions([H|T], Pointer, []);
     _ ->
       []
   end,
   NewOffset = Offset+NewLimit,
-  io:format("NEwSize: ~pNewOFfset:~p NewLimit:~p~n", [byte_size(Binary),NewOffset, NewLimit]),
-  parition_binary(lists:append(Result, NewResult), binary:part(Binary,{NewOffset, Limit}), 0, Limit).
+  parition_binary(lists:append(Result, NewResult), binary:part(Binary, NewOffset, BinarySize-NewOffset), 0, Limit, Pointer+NewOffset).
 
 
 
 %Input - formats: <<"U">>, <<1,80>>
 start(Input) ->
   Server_Process_ID = spawn(extract_offsets, start_link, []),
-  parition_binary([], Input, 0, ?THRESHOLD).
-%  binary:part(Input,{10, 1000}).
-%  Result = case [X || X <- binary_to_list(Input), X =/=0] of
-%    [H|T] ->
-%      loop_positions([H|T], 0, []);
-%    _ ->
-%      []
-%  end,
-%  Result.
+  parition_binary([], Input, 0, ?THRESHOLD, 0).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
