@@ -30,11 +30,13 @@ loop([H|T], Position, Result) ->
   loop(T, Position, NewResult).
       
 
+%------------------------------------------------------
+% Input: list;
+% Output: list
+%------------------------------------------------------
 loop_positions([], Result)->
-  %io:format("#loop_positions# result: ~p~n", [Result]),
   Result;
 loop_positions([[H, Position]|T], Result) ->
-  %io:format("H:~p;P:~p:~n", [H, Position]),
   NewResult = case re:run(string:right(hd(io_lib:format("~.2B", [H])), 8, $0), "1", [global]) of
     {match, V} ->
       loop(V, Position, Result);
@@ -48,7 +50,6 @@ loop_positions([[H, Position]|T], Result) ->
 % Paritioning big binary into parts
 %------------------------------------------------------
 parition_binary(Result, <<>>, _Offset, _Limit, _Pointer) ->
-  io:format("#parition_binary Result 1: ~p~n", [Result]),
   Result;
 parition_binary(Result, Binary, Offset, Limit, Pointer) when Offset =< byte_size(Binary) ->
   BinarySize = byte_size(Binary),
@@ -61,11 +62,10 @@ parition_binary(Result, Binary, Offset, Limit, Pointer) when Offset =< byte_size
   PartBinary = binary:part(Binary,{Offset, NewLimit}),
   NewResult = case prepare_list(binary_to_list(PartBinary), Pointer, []) of
     [H|T] ->
-      loop_positions([H|T], Result);
+      loop_positions([H|T], []);
     _ ->
       []
   end,
-  io:format("#NewResult: ~p;#Result:~p~n", [NewResult, Result]),
   NewOffset = Offset+NewLimit,
   parition_binary(lists:append(Result, NewResult), binary:part(Binary, NewOffset, BinarySize-NewOffset), 0, Limit, Pointer+NewOffset).
 
@@ -73,7 +73,7 @@ parition_binary(Result, Binary, Offset, Limit, Pointer) when Offset =< byte_size
 % Input: <<1, 7, 0, 0, 9, 0>>; 
 % Output: [[1, 0], [7, 1], [9, 4]]
 %------------------------------------------------------
-prepare_list([], InnerPosition, Result) ->
+prepare_list([], _InnerPosition, Result) ->
   Result;
 prepare_list([H|T], InnerPosition, Result) ->
   case H of
@@ -83,7 +83,6 @@ prepare_list([H|T], InnerPosition, Result) ->
       prepare_list(T, InnerPosition+1, lists:append(Result, [[H, InnerPosition]]))
   end.
 
-  
 
 %Input - formats: <<"U">>, <<1,80>>
 start(Input) ->
