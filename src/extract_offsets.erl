@@ -10,7 +10,7 @@
 
 -define(THRESHOLD, 1000).
 -define(ENABLE_PROFILE, 0).
--define(ENABLE_STATISTICS, 0).
+-define(ENABLE_STATISTICS, 1).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %%%                              Public API                                  %%%
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
@@ -32,7 +32,9 @@ loop([H|T], Position, Result) ->
 
 loop_positions([], _Position, Result)->
   Result;
-loop_positions([H|T], Position, Result) ->
+loop_positions([H|T], Position, Result) when H =:= 0 ->
+  loop_positions(T, Position+1, Result);
+loop_positions([H|T], Position, Result) when H =/= 0 ->
   NewResult = case re:run(string:right(hd(io_lib:format("~.2B", [H])), 8, $0), "1", [global]) of
     {match, V} ->
       loop(V, Position, Result);
@@ -43,14 +45,6 @@ loop_positions([H|T], Position, Result) ->
 
 parition_binary(Result, <<>>, _Offset, _Limit, _Pointer) ->
   Result;
-parition_binary(Result, Binary, _Offset, _Limit, Pointer) when byte_size(Binary) < ?THRESHOLD ->
-  NewResult = case [X || X <- binary_to_list(Binary), X =/=0] of
-    [H|T] ->
-      loop_positions([H|T], Pointer, Result);
-    _ ->
-      Result
-  end,
-  NewResult;
 parition_binary(Result, Binary, Offset, Limit, Pointer) when Offset =< byte_size(Binary) ->
   BinarySize = byte_size(Binary),
   NewLimit = case Offset + Limit > BinarySize of
@@ -60,9 +54,10 @@ parition_binary(Result, Binary, Offset, Limit, Pointer) when Offset =< byte_size
       Limit
   end,
   PartBinary = binary:part(Binary,{Offset, NewLimit}),
-  NewResult = case [X || X <- binary_to_list(PartBinary), X =/=0] of
+  %io:format("Header: ~p~n",[PartBinary]),
+  NewResult = case [X || X <- binary_to_list(PartBinary)] of
     [H|T] ->
-      loop_positions([H|T], Pointer, []);
+      loop_positions([H|T], Pointer, Result);
     _ ->
       []
   end,
@@ -89,7 +84,7 @@ start(Input) ->
       nothing_to_do
   end,
   Result = parition_binary([], Input, 0, ?THRESHOLD, 0),
-  io:format("Result: ~p~n", [Result]),
+  %io:format("Result: ~p~n", [Result]),
   case ?ENABLE_STATISTICS =:= 1 of
     true ->
       {_, CpuTime} = statistics(runtime),
@@ -104,4 +99,5 @@ start(Input) ->
       eprof:analyze(total);
     false ->
       nothing_to_do
-  end.
+  end,
+  Result.
